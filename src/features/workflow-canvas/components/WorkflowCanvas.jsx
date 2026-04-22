@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef } from 'react';
 import ReactFlow, { Background, Controls, MiniMap, addEdge, useReactFlow } from 'reactflow';
 import { Panel } from '../../../shared/ui';
+import { NODE_LIBRARY } from '../../../entities/workflow/constants';
 import { ApprovalNode, AutomatedStepNode, EndNode, StartNode, TaskNode } from './nodeTypes';
 
 const nodeTypes = {
@@ -24,6 +25,21 @@ export function WorkflowCanvas({
   const wrapperRef = useRef(null);
   const reactFlow = useReactFlow();
 
+  const handleSelectionChange = useCallback(
+    (selection) => {
+      const nextSelectedId = selection?.nodes?.[0]?.id ?? null;
+      setSelectedNodeId(nextSelectedId);
+    },
+    [setSelectedNodeId],
+  );
+
+  const handleNodeClick = useCallback(
+    (_event, node) => {
+      setSelectedNodeId(node?.id ?? null);
+    },
+    [setSelectedNodeId],
+  );
+
   const flowNodes = useMemo(
     () => nodes.map((node) => ({ ...node, selected: node.id === selectedNodeId })),
     [nodes, selectedNodeId],
@@ -44,16 +60,24 @@ export function WorkflowCanvas({
   const onDrop = useCallback(
     (event) => {
       event.preventDefault();
-      const type = event.dataTransfer.getData('application/reactflow');
-      if (!type) return;
+      const type =
+        event.dataTransfer.getData('application/reactflow') ||
+        event.dataTransfer.getData('text/plain');
+      const isKnownType = NODE_LIBRARY.some((node) => node.type === type);
+      if (!type || !isKnownType) return;
 
       const bounds = wrapperRef.current?.getBoundingClientRect();
       if (!bounds) return;
 
-      const position = reactFlow.screenToFlowPosition({
-        x: event.clientX - bounds.left,
-        y: event.clientY - bounds.top,
-      });
+      const position = reactFlow.screenToFlowPosition
+        ? reactFlow.screenToFlowPosition({
+            x: event.clientX,
+            y: event.clientY,
+          })
+        : reactFlow.project({
+            x: event.clientX - bounds.left,
+            y: event.clientY - bounds.top,
+          });
 
       addNode(type, position);
     },
@@ -83,7 +107,9 @@ export function WorkflowCanvas({
           onConnect={onConnect}
           onDrop={onDrop}
           onDragOver={onDragOver}
-          onSelectionChange={({ nodes: selectedNodes }) => setSelectedNodeId(selectedNodes[0]?.id ?? null)}
+          onSelectionChange={handleSelectionChange}
+          onNodeClick={handleNodeClick}
+          onPaneClick={() => setSelectedNodeId(null)}
           nodeTypes={nodeTypes}
           fitView
           deleteKeyCode={['Backspace', 'Delete']}

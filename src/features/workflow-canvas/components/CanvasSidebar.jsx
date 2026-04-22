@@ -4,6 +4,7 @@ import { Panel, SectionTitle } from '../../../shared/ui';
 export function CanvasSidebar() {
   const onDragStart = (event, nodeType) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
+    event.dataTransfer.setData('text/plain', nodeType);
     event.dataTransfer.effectAllowed = 'move';
   };
 
@@ -17,17 +18,16 @@ export function CanvasSidebar() {
 
       <div className="space-y-3">
         {NODE_LIBRARY.map((node) => (
-          <button
+          <div
             key={node.type}
-            type="button"
             draggable
             onDragStart={(event) => onDragStart(event, node.type)}
-            className="w-full rounded-3xl border border-white/10 bg-white/[0.05] p-4 text-left transition hover:border-cyan-300/50 hover:bg-white/[0.08]"
+            className="w-full cursor-grab rounded-3xl border border-white/10 bg-white/[0.05] p-4 text-left transition hover:border-cyan-300/50 hover:bg-white/[0.08] active:cursor-grabbing"
           >
             <div className={`mb-3 h-2 w-20 rounded-full bg-gradient-to-r ${node.accent}`} />
             <div className="text-sm font-semibold text-white">{node.label}</div>
             <div className="mt-1 text-sm leading-6 text-slate-300">{node.description}</div>
-          </button>
+          </div>
         ))}
       </div>
 
